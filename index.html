@@ -18,9 +18,9 @@ button,input{font:inherit;border-radius:10px;border:1px solid var(--line);paddin
 <body>
 <main>
 <header><div class="tag">REBEL CUBING ASSOCIATION</div><h1>RCA Recruiter</h1><p>Prepare your candidate list and keep track while you send Scratch invites manually.</p></header>
-<div class="notice">Scratch still requires each studio invitation to be sent individually. This page helps organise the list; it does not send invites or messages automatically.</div>
+<div class="notice">This dashboard loads a prepared list from this repository, so your browser does not need to contact Scratch directly. Scratch invitations are still sent manually, one at a time.</div>
 <div class="controls">
-<button class="primary" id="load">Load SCA members</button>
+<button class="primary" id="load">Load candidate list</button>
 <button id="all">Select visible</button>
 <button id="none">Clear selection</button>
 </div>
@@ -30,7 +30,7 @@ button,input{font:inherit;border-radius:10px;border:1px solid var(--line);paddin
 <button id="openStudio">Open SCA studio</button>
 </div>
 <div class="stats"><span id="count">No members loaded</span><span id="selectedCount">0 selected</span></div>
-<div id="list" class="list"><div class="empty">Tap “Load SCA members” to fetch the public managers and curators list.</div></div>
+<div id="list" class="list"><div class="empty">Run “Build RCA candidate list” in GitHub Actions first, then tap “Load candidate list”.</div></div>
 <p><small>Invited marks are saved only in this browser on this device. If the Scratch API is unavailable, try again later.</small></p>
 </main>
 <script>
@@ -68,18 +68,18 @@ async function fetchAll(kind){
  return out
 }
 $('load').addEventListener('click',async()=>{
- $('load').disabled=true;$('load').textContent='Loading…';$('list').innerHTML='<div class="empty">Fetching public studio members…</div>';
+ $('load').disabled=true;$('load').textContent='Loading…';$('list').innerHTML='<div class="empty">Loading the latest prepared candidate list…</div>';
  try{
-  const [curators,managers]=await Promise.all([fetchAll('curators'),fetchAll('managers')]);
-  const host=new Set();
-  // The host is excluded when the public studio endpoint identifies it.
-  try{const r=await fetch('https://api.scratch.mit.edu/studios/'+STUDIO+'/');if(r.ok){const d=await r.json();if(d.host&&d.host.username)host.add(d.host.username)}}catch{}
+  const response=await fetch('./candidates.json?cache='+Date.now(),{cache:'no-store'});
+  if(!response.ok)throw new Error(response.status===404?'No candidate data yet. Run the GitHub Actions workflow first.':'Could not load candidate data (HTTP '+response.status+').');
+  const data=await response.json();
+  if(!Array.isArray(data.candidates))throw new Error('Candidate data has an unexpected format.');
   const map=new Map();
-  for(const u of [...managers,...curators])if(u&&u.username&&!host.has(u.username))map.set(u.username,{username:u.username});
+  for(const item of data.candidates){if(item&&typeof item.username==='string'&&item.username.trim())map.set(item.username.toLowerCase(),{username:item.username.trim()})}
   members=[...map.values()].sort((a,b)=>a.username.localeCompare(b.username));
-  selected.clear();render()
- }catch(e){$('list').innerHTML='<div class="empty">Could not load the list: '+String(e.message||e)+'<br><br>Scratch may be rate-limiting requests or blocking this browser. Try again later.</div>'}
- finally{$('load').disabled=false;$('load').textContent='Load SCA members'}
+  selected.clear();render();
+ }catch(e){$('list').innerHTML='';const msg=document.createElement('div');msg.className='empty';msg.textContent='Could not load candidate data: '+(e.message||e)+' Open the repository Actions tab, run “Build RCA candidate list”, and wait for it to finish.';$('list').append(msg)}
+ finally{$('load').disabled=false;$('load').textContent='Load candidate list'}
 });
 $('search').addEventListener('input',render);
 $('all').addEventListener('click',()=>{for(const m of visible())selected.add(m.username);render()});
