@@ -14,6 +14,7 @@ STUDIO_ID = os.environ.get("SCRATCH_STUDIO_ID", "35469041")
 API_BASE = "https://api.scratch.mit.edu"
 PAGE_SIZE = 40
 OUTPUT_FILE = "rca_candidates.txt"
+JSON_OUTPUT_FILE = "candidates.json"
 
 
 def fetch_json(url):
@@ -90,6 +91,16 @@ def main():
         output.write("Source: public managers and curators roster\n")
         output.write("Host excluded when identifiable. No invitations were sent.\n\n")
         output.writelines(username + "\n" for username in candidates)
+
+    with open(JSON_OUTPUT_FILE, "w", encoding="utf-8") as output:
+        json.dump({
+            "studio_id": STUDIO_ID,
+            "host": host,
+            "managers_count": len(managers),
+            "curators_count": len(curators),
+            "candidates": [{"username": username} for username in candidates],
+        }, output, ensure_ascii=False, indent=2)
+        output.write("\\n")
 
     print(f"Host: {host or 'not identified by API'}")
     print(f"Managers: {len(managers)} | Curators: {len(curators)}")
