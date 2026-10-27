@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RCA Recruiter</title>
+<style>
+:root{color-scheme:dark;--bg:#101014;--panel:#1b1b22;--line:#33333f;--red:#e33b4d;--muted:#aaaab8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#f5f5f7;font:16px system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:900px;margin:auto;padding:22px 15px 50px}h1{margin:0;font-size:2rem}p{color:var(--muted);line-height:1.5}
+header{border-bottom:1px solid var(--line);padding-bottom:15px;margin-bottom:18px}.tag{color:#ff9aa5;font-weight:700;letter-spacing:.08em;font-size:.8rem}
+.controls,.stats,.person{display:flex;align-items:center;gap:10px}.controls{flex-wrap:wrap;margin:14px 0}.stats{justify-content:space-between;color:var(--muted);font-size:.9rem;margin:12px 0}
+button,input{font:inherit;border-radius:10px;border:1px solid var(--line);padding:11px 13px}button{background:#292933;color:white;cursor:pointer}button.primary{background:var(--red);border-color:var(--red);font-weight:700}button:disabled{opacity:.45;cursor:not-allowed}input[type=search]{background:var(--panel);color:white;flex:1;min-width:180px}
+.notice{background:#211b1d;border:1px solid #513039;border-radius:12px;padding:12px 14px;color:#e7cdd0;font-size:.92rem}
+.list{display:grid;gap:8px}.person{background:var(--panel);border:1px solid var(--line);padding:12px;border-radius:12px;flex-wrap:wrap}.person input{width:20px;height:20px;accent-color:var(--red)}.username{font-weight:650;flex:1;overflow-wrap:anywhere}.person a{color:#ff9aa5;text-decoration:none;font-size:.9rem}.status{font-size:.78rem;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:4px 8px}.status.done{color:#9fe3bd;border-color:#37664b}.empty{padding:30px 10px;text-align:center;color:var(--muted)}small{color:var(--muted)}@media(max-width:480px){main{padding:17px 11px}.person{gap:8px}.controls button{flex:1}}
+</style>
+</head>
+<body>
+<main>
+<header><div class="tag">REBEL CUBING ASSOCIATION</div><h1>RCA Recruiter</h1><p>Prepare your candidate list and keep track while you send Scratch invites manually.</p></header>
+<div class="notice">Scratch still requires each studio invitation to be sent individually. This page helps organise the list; it does not send invites or messages automatically.</div>
+<div class="controls">
+<button class="primary" id="load">Load SCA members</button>
+<button id="all">Select visible</button>
+<button id="none">Clear selection</button>
+</div>
+<div class="controls">
+<input type="search" id="search" placeholder="Search usernames…" aria-label="Search usernames">
+<button id="copy" disabled>Copy selected</button>
+<button id="openStudio">Open SCA studio</button>
+</div>
+<div class="stats"><span id="count">No members loaded</span><span id="selectedCount">0 selected</span></div>
+<div id="list" class="list"><div class="empty">Tap “Load SCA members” to fetch the public managers and curators list.</div></div>
+<p><small>Invited marks are saved only in this browser on this device. If the Scratch API is unavailable, try again later.</small></p>
+</main>
+<script>
+const STUDIO=35469041;
+const STUDIO_URL='https://scratch.mit.edu/studios/'+STUDIO+'/curators/';
+const $=id=>document.getElementById(id);
+let members=[], selected=new Set(), invited=new Set();
+try{invited=new Set(JSON.parse(localStorage.getItem('rca-invited-'+STUDIO)||'[]'))}catch{}
+function persist(){try{localStorage.setItem('rca-invited-'+STUDIO,JSON.stringify([...invited]))}catch{}}
+function visible(){const q=$('search').value.trim().toLowerCase();return members.filter(m=>m.username.toLowerCase().includes(q))}
+function updateCounts(){ $('count').textContent=members.length+' members';$('selectedCount').textContent=selected.size+' selected';$('copy').disabled=selected.size===0}
+function render(){
+ const list=$('list');list.replaceChildren();const rows=visible();
+ if(!rows.length){list.innerHTML='<div class="empty">No matching usernames.</div>';updateCounts();return}
+ for(const m of rows){
+  const row=document.createElement('div');row.className='person';
+  const cb=document.createElement('input');cb.type='checkbox';cb.checked=selected.has(m.username);cb.setAttribute('aria-label','Select '+m.username);
+  cb.addEventListener('change',()=>{cb.checked?selected.add(m.username):selected.delete(m.username);updateCounts()});
+  const name=document.createElement('span');name.className='username';name.textContent=m.username;
+  const link=document.createElement('a');link.href='https://scratch.mit.edu/users/'+encodeURIComponent(m.username)+'/';link.target='_blank';link.rel='noopener';link.textContent='Profile ↗';
+  const mark=document.createElement('button');mark.className='status'+(invited.has(m.username)?' done':'');mark.textContent=invited.has(m.username)?'Invited ✓':'Mark invited';mark.addEventListener('click',()=>{invited.has(m.username)?invited.delete(m.username):invited.add(m.username);persist();render()});
+  row.append(cb,name,link,mark);list.append(row)
+ }
+ updateCounts()
+}
+async function fetchAll(kind){
+ let out=[],offset=0;
+ while(true){
+  const url='https://api.scratch.mit.edu/studios/'+STUDIO+'/'+kind+'/?limit=40&offset='+offset;
+  const r=await fetch(url);if(!r.ok)throw new Error('Scratch API returned HTTP '+r.status);
+  const batch=await r.json();if(!Array.isArray(batch))throw new Error('Unexpected Scratch API response');
+  out.push(...batch);if(batch.length<40)break;offset+=40;if(offset>20000)break;
+ }
+ return out
+}
+$('load').addEventListener('click',async()=>{
+ $('load').disabled=true;$('load').textContent='Loading…';$('list').innerHTML='<div class="empty">Fetching public studio members…</div>';
+ try{
+  const [curators,managers]=await Promise.all([fetchAll('curators'),fetchAll('managers')]);
+  const host=new Set();
+  // The host is excluded when the public studio endpoint identifies it.
+  try{const r=await fetch('https://api.scratch.mit.edu/studios/'+STUDIO+'/');if(r.ok){const d=await r.json();if(d.host&&d.host.username)host.add(d.host.username)}}catch{}
+  const map=new Map();
+  for(const u of [...managers,...curators])if(u&&u.username&&!host.has(u.username))map.set(u.username,{username:u.username});
+  members=[...map.values()].sort((a,b)=>a.username.localeCompare(b.username));
+  selected.clear();render()
+ }catch(e){$('list').innerHTML='<div class="empty">Could not load the list: '+String(e.message||e)+'<br><br>Scratch may be rate-limiting requests or blocking this browser. Try again later.</div>'}
+ finally{$('load').disabled=false;$('load').textContent='Load SCA members'}
+});
+$('search').addEventListener('input',render);
+$('all').addEventListener('click',()=>{for(const m of visible())selected.add(m.username);render()});
+$('none').addEventListener('click',()=>{selected.clear();render()});
+$('copy').addEventListener('click',async()=>{
+ const text=[...selected].sort((a,b)=>a.localeCompare(b)).join('\n');
+ try{await navigator.clipboard.writeText(text);$('copy').textContent='Copied!';setTimeout(()=>$('copy').textContent='Copy selected',1400)}
+ catch{const ta=document.createElement('textarea');ta.value=text;document.body.append(ta);ta.select();document.execCommand('copy');ta.remove();$('copy').textContent='Copied!';setTimeout(()=>$('copy').textContent='Copy selected',1400)}
+});
+$('openStudio').addEventListener('click',()=>window.open(STUDIO_URL,'_blank','noopener'));
+</script>
+</body>
+</html>
