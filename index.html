@@ -12,7 +12,7 @@ header{border-bottom:1px solid var(--line);padding-bottom:15px;margin-bottom:18p
 .controls,.stats,.person{display:flex;align-items:center;gap:10px}.controls{flex-wrap:wrap;margin:14px 0}.stats{justify-content:space-between;color:var(--muted);font-size:.9rem;margin:12px 0}
 button,input{font:inherit;border-radius:10px;border:1px solid var(--line);padding:11px 13px}button{background:#292933;color:white;cursor:pointer}button.primary{background:var(--red);border-color:var(--red);font-weight:700}button:disabled{opacity:.45;cursor:not-allowed}input[type=search]{background:var(--panel);color:white;flex:1;min-width:180px}
 .notice{background:#211b1d;border:1px solid #513039;border-radius:12px;padding:12px 14px;color:#e7cdd0;font-size:.92rem}
-.list{display:grid;gap:8px}.person{background:var(--panel);border:1px solid var(--line);padding:12px;border-radius:12px;flex-wrap:wrap}.person input{width:20px;height:20px;accent-color:var(--red)}.username{font-weight:650;flex:1;overflow-wrap:anywhere}.person a{color:#ff9aa5;text-decoration:none;font-size:.9rem}.status{font-size:.78rem;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:4px 8px}.status.done{color:#9fe3bd;border-color:#37664b}.empty{padding:30px 10px;text-align:center;color:var(--muted)}small{color:var(--muted)}@media(max-width:480px){main{padding:17px 11px}.person{gap:8px}.controls button{flex:1}}
+.list{display:grid;gap:8px}.person{background:var(--panel);border:1px solid var(--line);padding:12px;border-radius:12px;flex-wrap:wrap}.person input{width:20px;height:20px;accent-color:var(--red)}.username{font-weight:650;flex:1;overflow-wrap:anywhere}.person a{color:#ff9aa5;text-decoration:none;font-size:.9rem}.copy-one{background:#353542;padding:7px 10px;font-size:.85rem}.status{font-size:.78rem;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:4px 8px}.status.done{color:#9fe3bd;border-color:#37664b}.empty{padding:30px 10px;text-align:center;color:var(--muted)}small{color:var(--muted)}@media(max-width:480px){main{padding:17px 11px}.person{gap:8px}.controls button{flex:1}}
 </style>
 </head>
 <body>
@@ -51,8 +51,9 @@ function render(){
   cb.addEventListener('change',()=>{cb.checked?selected.add(m.username):selected.delete(m.username);updateCounts()});
   const name=document.createElement('span');name.className='username';name.textContent=m.username;
   const link=document.createElement('a');link.href='https://scratch.mit.edu/users/'+encodeURIComponent(m.username)+'/';link.target='_blank';link.rel='noopener';link.textContent='Profile ↗';
+  const copyOne=document.createElement('button');copyOne.className='copy-one';copyOne.textContent='Copy username';copyOne.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(m.username)}catch{const ta=document.createElement('textarea');ta.value=m.username;document.body.append(ta);ta.select();document.execCommand('copy');ta.remove()}copyOne.textContent='Copied!';setTimeout(()=>copyOne.textContent='Copy username',1200)});
   const mark=document.createElement('button');mark.className='status'+(invited.has(m.username)?' done':'');mark.textContent=invited.has(m.username)?'Invited ✓':'Mark invited';mark.addEventListener('click',()=>{invited.has(m.username)?invited.delete(m.username):invited.add(m.username);persist();render()});
-  row.append(cb,name,link,mark);list.append(row)
+  row.append(cb,name,link,copyOne,mark);list.append(row)
  }
  updateCounts()
 }
