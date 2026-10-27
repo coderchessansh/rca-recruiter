@@ -100,7 +100,7 @@ def main():
             "curators_count": len(curators),
             "candidates": [{"username": username} for username in candidates],
         }, output, ensure_ascii=False, indent=2)
-        output.write("\\n")
+        output.write("\n")
 
     print(f"Host: {host or 'not identified by API'}")
     print(f"Managers: {len(managers)} | Curators: {len(curators)}")
