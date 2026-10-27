@@ -1,0 +1,31 @@
+name: Build RCA candidate list
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "recruiter.py"
+      - ".github/workflows/build-candidate-list.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-list:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build candidate list
+        run: python recruiter.py
+      - name: Upload candidate list
+        uses: actions/upload-artifact@v4
+        with:
+          name: rca-candidates
+          path: rca_candidates.txt
+          if-no-files-found: error
+          retention-days: 7
