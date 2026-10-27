@@ -1,20 +1,29 @@
-# RCA Recruiter — Candidate List Builder
+# RCA Recruiter
 
-A small read-only helper that builds a list of public managers and curators from the SCA Scratch studio for RCA to review.
+A mobile-friendly helper for preparing and tracking RCA's manual Scratch studio invitations.
 
-**It does not automatically invite, follow, message, or comment on anyone.** Review the list and invite people manually and respectfully.
+## Dashboard
 
-## What it does
+The dashboard is in `index.html`. To publish it with GitHub Pages:
 
-- Reads the public roster using Scratch's public API.
-- Collects studio managers and curators.
-- Removes duplicate usernames.
-- Excludes the studio host when the API identifies the host.
-- Writes the list to `rca_candidates.txt`.
+1. Open this repository's **Settings → Pages**.
+2. Under **Build and deployment**, choose **Deploy from a branch**.
+3. Select branch **main** and folder **/(root)**, then save.
+4. Open the Pages URL GitHub shows you.
+
+The dashboard fetches public managers and curators from the SCA studio, lets you search/select usernames, copy selected usernames, and mark invitations as sent. The “invited” marks are saved only in the browser on that device.
+
+**Scratch still requires you to invite each person individually.** The dashboard does not send invitations, messages, follows, or comments automatically.
+
+If the browser blocks Scratch API requests or Scratch rate-limits them, use the Python builder below instead.
+
+## Python candidate list builder
+
+The Python script reads the public roster, deduplicates managers and curators, excludes the host when identifiable, and writes `rca_candidates.txt`.
 
 Default studio: [SCA studio roster](https://scratch.mit.edu/studios/35469041/curators/)
 
-## Run locally
+### Run locally
 
 Requires Python 3.10 or newer. No extra packages are required.
 
@@ -22,11 +31,9 @@ Requires Python 3.10 or newer. No extra packages are required.
 python recruiter.py
 ```
 
-The script creates `rca_candidates.txt` in the current directory.
-
 To use a different studio ID, set the `SCRATCH_STUDIO_ID` environment variable before running the script.
 
-## Run on GitHub
+### Run on GitHub Actions
 
 1. Open the repository's **Actions** tab.
 2. Select **Build RCA candidate list**.
@@ -35,8 +42,6 @@ To use a different studio ID, set the `SCRATCH_STUDIO_ID` environment variable b
 
 The workflow also runs when `recruiter.py` or its workflow file is changed.
 
-## Notes
+## Respectful recruitment
 
-- This relies on Scratch's public API and may need changes if the API changes.
-- The script does not automate recruitment actions.
-- Be transparent that RCA is a separate community, and respect anyone who declines an invitation.
+Be clear that RCA is a separate community. Invite people individually, avoid repeated unwanted invitations, and respect anyone who declines.
